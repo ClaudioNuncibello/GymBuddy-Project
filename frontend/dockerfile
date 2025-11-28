@@ -1,0 +1,27 @@
+# Usa Node 20 su Alpine Linux (leggero)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Installa dipendenze di sistema necessarie (libc6-compat è spesso richiesto da Next.js su Alpine)
+RUN apk add --no-cache libc6-compat
+
+# Copia i file di configurazione delle dipendenze
+COPY package.json package-lock.json* ./
+
+# Installa TUTTE le dipendenze (incluse quelle di sviluppo come ESLint)
+# Usiamo 'npm install' invece di 'npm ci' per permettere aggiornamenti facili in dev
+RUN npm install
+
+# Copia il codice sorgente
+COPY . .
+
+# Next.js raccoglie dati anonimi sulla telemetria, disabilitalo se vuoi
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Espone la porta di sviluppo standard
+EXPOSE 3000
+ENV PORT 3000
+
+# Avvia il server in modalità SVILUPPO (Hot Reload attivo)
+CMD ["npm", "run", "dev"]

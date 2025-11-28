@@ -1,0 +1,62 @@
+services:
+  # 1. IL DATABASE (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: app-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d myappdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. IL BACKEND (Python FastAPI)
+  backend:
+    build: ./backend
+    container_name: app-backend
+    volumes:
+      - ./backend:/app
+      # Aggiungiamo un volume per i file statici (video/immagini)
+      - ./backend/static:/app/static
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://myuser:mypassword@db:5432/myappdb
+    networks:
+      - app-network
+
+  # 3. IL FRONTEND (Next.js)
+  frontend:
+    build: ./frontend
+    container_name: app-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      # URL interno (Server to Server)
+      INTERNAL_API_URL: http://backend:8000
+      # URL pubblico (Browser to Server)
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

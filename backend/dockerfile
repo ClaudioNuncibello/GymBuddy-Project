@@ -1,0 +1,26 @@
+# Usa Python 3.11 (versione leggera)
+FROM python:3.11-slim
+
+# Imposta la cartella di lavoro dentro il container
+WORKDIR /app
+
+# Variabili per evitare che Python bufferizzi i log (così vedi gli errori subito)
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Installa le dipendenze di sistema necessarie per compilare alcuni pacchetti
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia il file dei requisiti e installa le librerie
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia tutto il resto del codice
+COPY . .
+
+# Comando di avvio: lancia uvicorn guardando dentro la cartella "app", file "main", oggetto "app"
+# --reload permette di aggiornare il codice senza riavviare Docker
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
