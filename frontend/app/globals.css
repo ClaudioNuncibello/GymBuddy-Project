@@ -1,22 +1,17 @@
+/* Nella v4 basta questa riga per importare tutto */
 @import "tailwindcss";
 
+/* Qui definiamo il tema personalizzato */
+@theme {
+  --color-gym-red: #9b2037;
+  --color-gym-yellow: #fff884;
+  --color-gym-white: #ffffff;
+}
+
+/* Stili base */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
