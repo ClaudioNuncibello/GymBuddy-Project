@@ -7,7 +7,7 @@ import os
 # Configurazioni
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-me")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 10080
 
 # Contesto per l'hashing delle password
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

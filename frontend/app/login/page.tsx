@@ -30,7 +30,7 @@ export default function LoginPage() {
       const decoded: any = jwtDecode(access_token);
 
       if (decoded.is_manager === true) {
-        router.push("/dashboard");
+        router.push("/dashboardAdmin");
       } else {
         router.push("/dashboard");
       }

@@ -4,15 +4,15 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-// --- INTERFACCIA AGGIORNATA CON I TEMPI ---
 interface ExerciseWithWorkload {
   id: number;
   title: string;
+  description: string; // Aggiunta descrizione qui
   video_url: string;
   sets: number;
   reps: number;
-  time_seconds?: number; // Opzionale (es. null se è a ripetizioni)
-  rest_seconds: number;  // Sempre presente (default 90)
+  time_seconds?: number;
+  rest_seconds: number;
 }
 
 interface WorkoutDetail {
@@ -24,9 +24,14 @@ interface WorkoutDetail {
 
 export default function WorkoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { id } = use(params); 
+  const { id } = use(params);
+  
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // STATI NUOVI
+  const [selectedIndex, setSelectedIndex] = useState<number>(0); // Parte dal primo di default
+  const [expandedId, setExpandedId] = useState<number | null>(null); // Per la tendina video
 
   useEffect(() => {
     if (!id) return;
@@ -43,19 +48,32 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
     fetchDetail();
   }, [id]);
 
+  // Helper per URL Video
+  const getVideoSrc = (filename: string) => {
+    if (!filename) return "";
+    if (filename.startsWith("http")) return filename;
+    return `http://localhost:8000/static/videos/${filename}`;
+  };
+
+  const handleStart = () => {
+    // Passiamo l'indice di partenza via Query Param
+    router.push(`/dashboard/workout/${id}/play?start=${selectedIndex}`);
+  };
+
+  const toggleExpand = (exId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita di selezionare l'esercizio quando clicchi sulla tendina
+    setExpandedId(expandedId === exId ? null : exId);
+  };
+
   if (loading) return <div className="min-h-screen bg-white text-gym-red flex items-center justify-center font-bold animate-pulse">Caricamento...</div>;
   if (!workout) return <div className="min-h-screen bg-white text-gray-500 flex items-center justify-center font-medium">Scheda non trovata</div>;
 
   return (
-    // SFONDO BIANCO
-    <div className="min-h-screen bg-white text-gray-900 pb-24 font-sans">
+    <div className="min-h-screen bg-white text-gray-900 pb-32 font-sans">
       
-      {/* HEADER BIANCO */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-4 flex items-center gap-4 shadow-sm">
-        <button 
-          onClick={() => router.back()}
-          className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition active:scale-95"
-        >
+      {/* HEADER */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-4 flex items-center gap-4 shadow-sm">
+        <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition active:scale-95">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </button>
         <h1 className="text-lg font-black uppercase italic truncate pr-4 text-gym-red">{workout.title}</h1>
@@ -67,73 +85,107 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
           {workout.description || "Nessuna descrizione fornita."}
         </div>
 
-        <h2 className="text-xl font-black mb-6 flex items-center gap-3 text-gray-800 uppercase italic">
-          <span className="w-1.5 h-6 bg-gym-yellow rounded-full inline-block"></span>
-          Lista Esercizi
-        </h2>
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-xl font-black flex items-center gap-3 text-gray-800 uppercase italic">
+            <span className="w-1.5 h-6 bg-gym-yellow rounded-full inline-block"></span>
+            Esercizi
+          </h2>
+          <span className="text-xs font-medium text-gray-400">Tocca per selezionare l'inizio</span>
+        </div>
 
-        {/* LISTA ESERCIZI */}
+        {/* LISTA ESERCIZI SELEZIONABILI */}
         <div className="space-y-4">
-          {workout.exercises && workout.exercises.length === 0 ? (
-            <p className="text-gray-400 text-center py-10 font-medium">Questa scheda è vuota.</p>
-          ) : (
-            workout.exercises?.map((exercise, index) => (
-              <div key={exercise.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-md flex gap-4 relative overflow-hidden group">
-                
-                {/* Numero */}
-                <div className="absolute top-0 right-0 bg-gym-red/5 text-xs px-3 py-1 rounded-bl-xl text-gym-red font-bold font-mono">
-                  #{index + 1}
-                </div>
+          {workout.exercises?.map((exercise, index) => {
+            const isSelected = selectedIndex === index;
+            const isExpanded = expandedId === exercise.id;
 
-                {/* Box Icona */}
-                <div className="w-20 h-20 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center text-gray-300 border border-gray-100">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className="opacity-50"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                </div>
+            return (
+              <div 
+                key={exercise.id} 
+                onClick={() => setSelectedIndex(index)}
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer relative ${
+                  isSelected 
+                    ? "bg-gym-red text-white border-gym-red shadow-lg shadow-gym-red/30 scale-[1.02]" 
+                    : "bg-white text-gray-900 border-gray-100 shadow-sm hover:border-gym-red/30"
+                }`}
+              >
+                {/* Indicatore "PARTENZA" se selezionato */}
+                {isSelected && (
+                  <div className="absolute top-0 right-0 bg-gym-yellow text-gym-red text-[10px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-wider z-10">
+                    START QUI
+                  </div>
+                )}
 
-                <div className="flex-1 flex flex-col justify-center pr-6">
-                  <h3 className="font-bold text-lg leading-tight mb-2 text-gray-900">{exercise.title}</h3>
-                  
-                  {/* --- BADGE CARICO DI LAVORO --- */}
-                  <div className="flex flex-wrap gap-2">
+                <div className="p-4 flex gap-4 items-center">
+                  {/* Numero */}
+                  <div className={`text-lg font-black font-mono w-8 ${isSelected ? "text-gym-yellow" : "text-gray-300"}`}>
+                    {(index + 1).toString().padStart(2, '0')}
+                  </div>
+
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg leading-tight mb-1">{exercise.title}</h3>
                     
-                    {/* SERIE */}
-                    <span className="bg-gym-red text-white text-xs px-2.5 py-1 rounded-lg font-bold shadow-sm flex items-center gap-1">
-                      {exercise.sets} Serie
-                    </span>
+                    <div className="flex gap-2 opacity-90">
+                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${isSelected ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}>
+                        {exercise.sets} x {exercise.reps > 0 ? exercise.reps : `${exercise.time_seconds}s`}
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* REPS o TEMPO ESECUZIONE */}
-                    {exercise.time_seconds && exercise.time_seconds > 0 ? (
-                      // Se c'è un tempo, mostriamo quello (es. Plank)
-                      <span className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-lg font-bold shadow-sm flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        {exercise.time_seconds}s
-                      </span>
+                  {/* Tasto Tendina Video/Info */}
+                  <button 
+                    onClick={(e) => toggleExpand(exercise.id, e)}
+                    className={`p-2 rounded-full transition-colors ${
+                      isSelected ? "bg-white/20 hover:bg-white/30 text-white" : "bg-gray-50 hover:bg-gray-100 text-gym-red"
+                    }`}
+                  >
+                    {isExpanded ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
                     ) : (
-                      // Altrimenti mostriamo le ripetizioni
-                      <span className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-lg font-bold shadow-sm">
-                        {exercise.reps} Reps
-                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* --- CONTENUTO TENDINA (Descrizione + Video) --- */}
+                {isExpanded && (
+                  <div className={`p-4 border-t ${isSelected ? "border-white/20 bg-red-900/20" : "border-gray-100 bg-gray-50"}`}>
+                    
+                    {exercise.description && (
+                      <p className={`text-sm mb-4 leading-relaxed ${isSelected ? "text-white/90" : "text-gray-600"}`}>
+                        {exercise.description}
+                      </p>
                     )}
 
-                    {/* RECUPERO (Sempre presente) */}
-                    <span className="bg-gym-yellow text-gym-red text-xs px-2.5 py-1 rounded-lg font-bold shadow-sm flex items-center gap-1 border border-gym-yellow/50">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2h4"/><path d="M12 14v-4"/><path d="M4 13a8 8 0 0 1 8-7 8 8 0 1 1-5.3 14L4 17.6"/><path d="M9 17H4v5"/></svg>
-                       Rec: {exercise.rest_seconds}s
-                    </span>
-
+                    {exercise.video_url ? (
+                      <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-inner relative">
+                        <video 
+                          src={getVideoSrc(exercise.video_url)} 
+                          controls
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className={`text-xs italic p-4 text-center rounded-xl border border-dashed ${isSelected ? "border-white/30 text-white/50" : "border-gray-200 text-gray-400"}`}>
+                        Nessun video disponibile
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
 
       </main>
 
-      {/* FAB */}
+      {/* FAB - PLAY BUTTON */}
       <div className="fixed bottom-8 right-6 z-30">
-        <button className="h-16 w-16 bg-gym-red rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(155,32,55,0.4)] hover:scale-105 active:scale-95 transition-all text-white border-4 border-white">
+        <button 
+          onClick={handleStart}
+          className="h-16 w-16 bg-gym-red rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(155,32,55,0.4)] hover:scale-105 active:scale-95 transition-all text-white border-4 border-white"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </button>
       </div>
