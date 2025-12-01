@@ -36,8 +36,6 @@ export default function AdminDashboard() {
   // Stati Modali
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  
-  // NUOVO: Modale per vedere chi ha la scheda
   const [isViewAssignmentsModalOpen, setIsViewAssignmentsModalOpen] = useState(false);
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
@@ -70,8 +68,7 @@ export default function AdminDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  // --- LOGICA NUOVA: GESTIONE ASSEGNAZIONI ---
-  
+  // --- LOGICA ASSEGNAZIONI ---
   const handleViewAssignments = async (workoutId: number) => {
     setSelectedWorkoutId(workoutId);
     try {
@@ -85,9 +82,20 @@ export default function AdminDashboard() {
     if (!confirm("Rimuovere la scheda a questo utente?")) return;
     try {
       await api.delete(`/assign-workout/${selectedWorkoutId}/user/${userId}`);
-      // Aggiorna la lista locale rimuovendo l'utente
       setAssignedUsers((prev) => prev.filter(u => u.id !== userId));
     } catch (err) { alert("Errore rimozione assegnazione"); }
+  };
+
+  const handleAssign = async (userId: number) => {
+    if (!selectedWorkoutId) return;
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    try {
+      await api.post(`/assign-workout/${selectedWorkoutId}/to-user/${user.username}`);
+      alert(`Scheda assegnata a ${user.username}!`);
+      setIsAssignModalOpen(false);
+    } catch (err) { alert("Errore: Scheda probabilmente già assegnata."); }
   };
 
   // --- CRUD HELPERS ---
@@ -121,18 +129,6 @@ export default function AdminDashboard() {
       setIsModalOpen(false);
       refreshAllData();
     } catch (err) { alert("Errore salvataggio. Controlla i dati."); }
-  };
-
-  const handleAssign = async (userId: number) => {
-    if (!selectedWorkoutId) return;
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-
-    try {
-      await api.post(`/assign-workout/${selectedWorkoutId}/to-user/${user.username}`);
-      alert(`Scheda assegnata a ${user.username}!`);
-      setIsAssignModalOpen(false);
-    } catch (err) { alert("Errore: Scheda probabilmente già assegnata."); }
   };
 
   return (
@@ -203,7 +199,7 @@ export default function AdminDashboard() {
           </div>
         ))}
 
-        {/* SCHEDE (Con nuove funzioni) */}
+        {/* SCHEDE */}
         {activeTab === "workouts" && workouts.map((workout) => (
           <div key={workout.id} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm space-y-4 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
@@ -220,13 +216,13 @@ export default function AdminDashboard() {
             {/* AZIONI SCHEDA */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button 
-                onClick={() => router.push(`/dashboard/workout/${workout.id}`)}
+                onClick={() => router.push(`/dashboardAdmin/workout/${workout.id}`)}
                 className="py-3 bg-gray-100 text-gray-700 rounded-xl text-xs font-black uppercase tracking-wide hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 MODIFICA ESERCIZI
               </button>
               
-              {/* Pulsante Nuovo: VEDI ASSEGNATI */}
               <button 
                 onClick={() => handleViewAssignments(workout.id)}
                 className="py-3 bg-purple-100 text-purple-700 rounded-xl text-xs font-black uppercase tracking-wide hover:bg-purple-200 transition-colors flex items-center justify-center gap-2"
@@ -236,7 +232,6 @@ export default function AdminDashboard() {
               </button>
             </div>
             
-            {/* Tasto ASSEGNA NUOVO (Pieno) */}
             <button 
               onClick={() => { setSelectedWorkoutId(workout.id); setIsAssignModalOpen(true); }}
               className="w-full py-2 bg-gym-yellow text-gym-red rounded-lg text-xs font-black uppercase tracking-wide hover:bg-yellow-300 transition-colors shadow-sm"
@@ -254,7 +249,7 @@ export default function AdminDashboard() {
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
 
-      {/* --- MODALE 1: CREAZIONE/MODIFICA (Invariato) --- */}
+      {/* MODALE CRUD (User/Exercise/Workout) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -276,7 +271,23 @@ export default function AdminDashboard() {
                 <>
                   <InputField label="Titolo" placeholder="Es. Panca Piana" value={formData.title} onChange={(e: any) => handleInputChange("title", e.target.value)} />
                   <InputField label="Descrizione" placeholder="Breve descrizione..." value={formData.description} onChange={(e: any) => handleInputChange("description", e.target.value)} />
-                  <InputField label="Video URL" placeholder="es. panca.mp4" value={formData.video_url} onChange={(e: any) => handleInputChange("video_url", e.target.value)} />
+                  
+                  {/* --- CAMPO VIDEO CON ANTEPRIMA --- */}
+                  <div className="mb-4">
+                    <InputField label="Video URL (Nome file)" placeholder="es. panca.mp4" value={formData.video_url} onChange={(e: any) => handleInputChange("video_url", e.target.value)} />
+                    {formData.video_url && (
+                        <a 
+                          href={`http://localhost:8000/video/${formData.video_url}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-500 underline font-bold flex items-center gap-1 mt-1 hover:text-blue-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                          Prova il link video (Apri in nuova scheda)
+                        </a>
+                    )}
+                  </div>
+
                   <InputField label="Recupero Default (sec)" type="number" placeholder="60" value={formData.default_rest} onChange={(e: any) => handleInputChange("default_rest", e.target.value)} />
                 </>
               )}
@@ -295,7 +306,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* --- MODALE 2: ASSEGNAZIONE A NUOVO UTENTE (Invariato) --- */}
+      {/* MODALE ASSEGNAZIONE NUOVO */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -314,7 +325,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* --- MODALE 3: LISTA ASSEGNATI (NUOVO!) --- */}
+      {/* MODALE VEDI ASSEGNATI (e Rimuovi) */}
       {isViewAssignmentsModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -333,8 +344,6 @@ export default function AdminDashboard() {
                       </div>
                       <span className="font-bold text-gray-700 text-sm">{user.username}</span>
                     </div>
-                    
-                    {/* Tasto Rimuovi Assegnazione */}
                     <button 
                       onClick={() => handleUnassignUser(user.id)}
                       className="p-2 bg-red-100 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
@@ -346,7 +355,6 @@ export default function AdminDashboard() {
                 ))
               )}
             </div>
-
             <button onClick={() => setIsViewAssignmentsModalOpen(false)} className="w-full py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition">Chiudi</button>
           </div>
         </div>

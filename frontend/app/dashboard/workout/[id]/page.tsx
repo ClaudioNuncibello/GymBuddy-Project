@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 interface ExerciseWithWorkload {
   id: number;
   title: string;
-  description: string; // Aggiunta descrizione qui
+  description: string;
   video_url: string;
   sets: number;
   reps: number;
@@ -29,9 +29,9 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // STATI NUOVI
-  const [selectedIndex, setSelectedIndex] = useState<number>(0); // Parte dal primo di default
-  const [expandedId, setExpandedId] = useState<number | null>(null); // Per la tendina video
+  // STATI PER INTERAZIONE
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -48,20 +48,32 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
     fetchDetail();
   }, [id]);
 
-  // Helper per URL Video
+  // --- HELPER VIDEO ---
   const getVideoSrc = (filename: string) => {
     if (!filename) return "";
     if (filename.startsWith("http")) return filename;
-    return `http://localhost:8000/static/videos/${filename}`;
+    return `http://localhost:8000/video/${filename}`;
+  };
+
+  // --- HELPER IMMAGINE (AUTOMATICO) ---
+  const getImageSrc = (videoFilename: string) => {
+    if (!videoFilename) return "";
+    // Se è un URL esterno, restituisci placeholder o l'url stesso se è un'immagine
+    if (videoFilename.startsWith("http")) return videoFilename;
+    
+    // LOGICA DI SOSTITUZIONE: panca.mp4 -> panca.jpg
+    // Rimuove l'estensione (ultimi 4 caratteri) e aggiunge .jpg
+    const imageName = videoFilename.replace(/\.[^/.]+$/, "") + ".jpg";
+    
+    return `http://localhost:8000/image/${imageName}`;
   };
 
   const handleStart = () => {
-    // Passiamo l'indice di partenza via Query Param
     router.push(`/dashboard/workout/${id}/play?start=${selectedIndex}`);
   };
 
   const toggleExpand = (exId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evita di selezionare l'esercizio quando clicchi sulla tendina
+    e.stopPropagation();
     setExpandedId(expandedId === exId ? null : exId);
   };
 
@@ -69,7 +81,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
   if (!workout) return <div className="min-h-screen bg-white text-gray-500 flex items-center justify-center font-medium">Scheda non trovata</div>;
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 pb-32 font-sans">
+    <div className="min-h-screen bg-white text-gray-900 pb-32 font-sans selection:bg-gym-yellow selection:text-gym-red">
       
       {/* HEADER */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-4 flex items-center gap-4 shadow-sm">
@@ -93,7 +105,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
           <span className="text-xs font-medium text-gray-400">Tocca per selezionare l'inizio</span>
         </div>
 
-        {/* LISTA ESERCIZI SELEZIONABILI */}
+        {/* LISTA ESERCIZI */}
         <div className="space-y-4">
           {workout.exercises?.map((exercise, index) => {
             const isSelected = selectedIndex === index;
@@ -109,7 +121,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                     : "bg-white text-gray-900 border-gray-100 shadow-sm hover:border-gym-red/30"
                 }`}
               >
-                {/* Indicatore "PARTENZA" se selezionato */}
+                {/* Indicatore START */}
                 {isSelected && (
                   <div className="absolute top-0 right-0 bg-gym-yellow text-gym-red text-[10px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-wider z-10">
                     START QUI
@@ -117,9 +129,20 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                 )}
 
                 <div className="p-4 flex gap-4 items-center">
-                  {/* Numero */}
-                  <div className={`text-lg font-black font-mono w-8 ${isSelected ? "text-gym-yellow" : "text-gray-300"}`}>
-                    {(index + 1).toString().padStart(2, '0')}
+                  
+                  {/* IMMAGINE AUTOMATICA */}
+                  <div className={`h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden border relative ${isSelected ? "border-gym-yellow" : "border-gray-200 bg-gray-100"}`}>
+                    <img
+                      src={getImageSrc(exercise.video_url)}
+                      alt={exercise.title}
+                      className="w-full h-full object-cover"
+                      // Fallback se l'immagine non esiste (mostra un placeholder grigio)
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement?.classList.add('bg-gray-200');
+                        e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center font-mono font-bold opacity-30 text-lg">${index + 1}</div>`;
+                      }}
+                    />
                   </div>
 
                   <div className="flex-1">
@@ -127,15 +150,18 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                     
                     <div className="flex gap-2 opacity-90">
                       <span className={`text-xs px-2 py-0.5 rounded font-bold ${isSelected ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}>
-                        {exercise.sets} x {exercise.reps > 0 ? exercise.reps : `${exercise.time_seconds}s`}
+                        {exercise.sets} Serie
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${isSelected ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}>
+                        {exercise.reps > 0 ? `${exercise.reps} Reps` : `${exercise.time_seconds}s`}
                       </span>
                     </div>
                   </div>
 
-                  {/* Tasto Tendina Video/Info */}
+                  {/* Tasto Tendina */}
                   <button 
                     onClick={(e) => toggleExpand(exercise.id, e)}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-2 rounded-full transition-colors z-20 ${
                       isSelected ? "bg-white/20 hover:bg-white/30 text-white" : "bg-gray-50 hover:bg-gray-100 text-gym-red"
                     }`}
                   >
@@ -147,28 +173,25 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                   </button>
                 </div>
 
-                {/* --- CONTENUTO TENDINA (Descrizione + Video) --- */}
+                {/* --- CONTENUTO TENDINA --- */}
                 {isExpanded && (
                   <div className={`p-4 border-t ${isSelected ? "border-white/20 bg-red-900/20" : "border-gray-100 bg-gray-50"}`}>
-                    
                     {exercise.description && (
                       <p className={`text-sm mb-4 leading-relaxed ${isSelected ? "text-white/90" : "text-gray-600"}`}>
                         {exercise.description}
                       </p>
                     )}
-
                     {exercise.video_url ? (
                       <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-inner relative">
                         <video 
                           src={getVideoSrc(exercise.video_url)} 
                           controls
+                          playsInline
                           className="w-full h-full object-contain"
                         />
                       </div>
                     ) : (
-                      <div className={`text-xs italic p-4 text-center rounded-xl border border-dashed ${isSelected ? "border-white/30 text-white/50" : "border-gray-200 text-gray-400"}`}>
-                        Nessun video disponibile
-                      </div>
+                      <div className="text-xs italic text-center text-gray-400">Nessun video</div>
                     )}
                   </div>
                 )}
