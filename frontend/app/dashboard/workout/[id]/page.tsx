@@ -4,6 +4,8 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 interface ExerciseWithWorkload {
   id: number;
   title: string;
@@ -52,7 +54,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
   const getVideoSrc = (filename: string) => {
     if (!filename) return "";
     if (filename.startsWith("http")) return filename;
-    return `http://localhost:8000/video/${filename}`;
+    return `${API_BASE_URL}/video/${filename}`;
   };
 
   // --- HELPER IMMAGINE (AUTOMATICO) ---
@@ -65,7 +67,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
     // Rimuove l'estensione (ultimi 4 caratteri) e aggiunge .jpg
     const imageName = videoFilename.replace(/\.[^/.]+$/, "") + ".jpg";
     
-    return `http://localhost:8000/image/${imageName}`;
+    return `${API_BASE_URL}/image/${imageName}`;
   };
 
   const handleStart = () => {

@@ -26,7 +26,7 @@ services:
     container_name: app-backend
     volumes:
       - ./backend:/app
-      # Aggiungiamo un volume per i file statici (video/immagini)
+      # Volume per i file statici (video/immagini)
       - ./backend/static:/app/static
     ports:
       - "8000:8000"
@@ -40,7 +40,11 @@ services:
 
   # 3. IL FRONTEND (Next.js)
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://192.168.1.217:8000
     container_name: app-frontend
     volumes:
       - ./frontend:/app
@@ -48,10 +52,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # URL interno (Server to Server)
+      # Questa serve ancora per il server-side (opzionale se usi solo client-side fetch)
       INTERNAL_API_URL: http://backend:8000
-      # URL pubblico (Browser to Server)
-      NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       - backend
     networks:

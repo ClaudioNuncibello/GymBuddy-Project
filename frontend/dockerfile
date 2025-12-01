@@ -16,6 +16,12 @@ RUN npm install
 # Copia il codice sorgente
 COPY . .
 
+ARG NEXT_PUBLIC_API_URL
+
+# Lo passiamo all'ambiente durante la build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+
 # Next.js raccoglie dati anonimi sulla telemetria, disabilitalo se vuoi
 ENV NEXT_TELEMETRY_DISABLED 1
 
