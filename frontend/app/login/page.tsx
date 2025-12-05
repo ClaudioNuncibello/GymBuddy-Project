@@ -1,57 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-import Link from "next/link"; // Importiamo Link per la navigazione
+import { api } from "@/lib/api"; 
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    setIsLoading(true);
+    setErrorMsg("");
 
     try {
+      // 1. Parametri Form-Data standard
       const params = new URLSearchParams();
-      params.append('username', username);
-      params.append('password', password);
+      params.append("username", username);
+      params.append("password", password);
+      // Alcune implementazioni richiedono grant_type, lo aggiungiamo per sicurezza
+      params.append("grant_type", "password"); 
 
-      const response = await api.post("/token", params);
-      const { access_token } = response.data;
-      
-      localStorage.setItem("token", access_token);
-      const decoded: any = jwtDecode(access_token);
+      // 2. Override Header Esplicito
+      // È cruciale specificare 'headers' qui per sovrascrivere il default 'application/json' di api.ts
+      const res = await api.post("/token", params, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
 
-      if (decoded.is_manager === true) {
-        router.push("/dashboardAdmin");
-      } else {
-        router.push("/dashboard");
-      }
+      const token = res.data.access_token;
+      if (!token) throw new Error("Token non ricevuto");
+
+      localStorage.setItem("token", token);
       
+      // Se vuoi debuggare, puoi stampare il token: console.log("Token:", token);
+      router.push("/dashboardAdmin"); 
+
     } catch (err: any) {
-      console.error(err);
-      if (err.response?.status === 400 || err.response?.status === 401) {
-        setError("Username o password errati.");
-      } else if (err.response?.status === 422) {
-        setError("Errore formato dati (422).");
+      console.error("Login Error:", err);
+      // Analizziamo il dettaglio dell'errore restituito dal server se presente
+      const serverError = err.response?.data?.detail;
+      
+      if (err.response?.status === 422) {
+        setErrorMsg(`Errore dati (422): ${JSON.stringify(serverError) || "Formato non valido"}`);
+      } else if (err.response?.status === 400 || err.response?.status === 401) {
+        setErrorMsg("Username o Password errati.");
       } else {
-        setError("Errore di connessione col server.");
+        setErrorMsg("Errore di connessione. Controlla che il backend sia attivo.");
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    // Sfondo bianco pulito (Tema Gym Buddy)
-    <div className="flex min-h-screen items-center justify-center bg-white text-gray-900 p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       
       {/* --- TASTO HOME (Nuovo) --- */}
       {/* Posizionato in alto a sinistra (absolute) */}
@@ -66,63 +74,52 @@ export default function LoginPage() {
         HOME
       </Link>
 
-      {/* Card Login */}
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl border border-gym-red/20 shadow-2xl shadow-gym-red/10">
-        
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-gym-red uppercase italic tracking-tighter mb-2">
-            Benvenuto
-          </h1>
-          <p className="text-gray-500 font-medium">Entra per allenarti</p>
+          <p className="text-gym-red font-black text-xs uppercase tracking-widest mb-2">Gym Buddy</p>
+          <h1 className="text-3xl font-black italic text-gray-900">BENVENUTO</h1>
+          <p className="text-gray-400 text-sm mt-1">Entra per seguire i tuoi allenamenti</p>
         </div>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg mb-6 text-sm text-center font-medium">
-            {error}
+
+        {errorMsg && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-xl text-center break-words">
+            {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700">Username</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Username</label>
             <input
               type="text"
+              required
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-gym-red focus:bg-white outline-none transition-colors font-bold text-gray-900"
+              placeholder="user"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-gym-red focus:ring-2 focus:ring-gym-red/20 outline-none transition text-gray-900 font-medium placeholder:text-gray-400"
-              placeholder="es. admin"
-              disabled={loading}
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700">Password</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Password</label>
             <input
               type="password"
+              required
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-gym-red focus:bg-white outline-none transition-colors font-bold text-gray-900"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-gym-red focus:ring-2 focus:ring-gym-red/20 outline-none transition text-gray-900 font-medium placeholder:text-gray-400"
-              placeholder="••••••••"
-              disabled={loading}
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className={`w-full py-4 px-4 rounded-xl font-black text-lg uppercase tracking-wide shadow-lg shadow-gym-red/30 transition-all transform active:scale-95 ${
-              loading 
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                : "bg-gym-red text-white hover:bg-red-800"
-            }`}
+            disabled={isLoading}
+            className="w-full py-4 bg-gym-red text-white font-black rounded-xl shadow-lg shadow-gym-red/30 hover:bg-red-700 hover:scale-[1.02] active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Accesso in corso..." : "Accedi"}
+            {isLoading ? "ACCESSO IN CORSO..." : "ACCEDI"}
           </button>
         </form>
-
-        <div className="mt-8 text-center">
-            <p className="text-xs text-gray-400">Problemi con l'accesso? Contatta il supporto.</p>
-        </div>
       </div>
     </div>
   );

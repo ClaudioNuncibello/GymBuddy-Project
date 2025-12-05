@@ -1,33 +1,53 @@
-# Usa Node 20 su Alpine Linux (leggero)
-FROM node:20-alpine
+# STAGE 1: Builder (Compilazione)
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+# Installa dipendenze di sistema necessarie
+RUN apk add --no-cache libc6-compat
+
+COPY package.json package-lock.json* ./
+
+# MODIFICA: Usiamo 'npm install' invece di 'npm ci'
+# Questo risolve l'errore del lockfile non sincronizzato aggiornandolo al volo
+RUN npm install
+
+COPY . .
+
+# Cattura l'argomento passato dal docker-compose
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Disabilita telemetria durante la build
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Compila l'applicazione per la produzione (crea la cartella .next)
+RUN npm run build
+
+# -------------------------------------------------------------------
+
+# STAGE 2: Runner (Esecuzione)
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Installa dipendenze di sistema necessarie (libc6-compat è spesso richiesto da Next.js su Alpine)
-RUN apk add --no-cache libc6-compat
-
-# Copia i file di configurazione delle dipendenze
-COPY package.json package-lock.json* ./
-
-# Installa TUTTE le dipendenze (incluse quelle di sviluppo come ESLint)
-# Usiamo 'npm install' invece di 'npm ci' per permettere aggiornamenti facili in dev
-RUN npm install
-
-# Copia il codice sorgente
-COPY . .
-
-ARG NEXT_PUBLIC_API_URL
-
-# Lo passiamo all'ambiente durante la build
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
-
-# Next.js raccoglie dati anonimi sulla telemetria, disabilitalo se vuoi
+ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Espone la porta di sviluppo standard
+# Crea un utente non-root per sicurezza (best practice)
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copia solo i file necessari dalla build precedente
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# Imposta i permessi corretti
+USER nextjs
+
 EXPOSE 3000
 ENV PORT 3000
 
-# Avvia il server in modalità SVILUPPO (Hot Reload attivo)
-CMD ["npm", "run", "dev"]
+# Avvia il server di PRODUZIONE
+CMD ["npm", "start"]
