@@ -28,6 +28,7 @@ class WorkoutExerciseLink(SQLModel, table=True):
     reps: Optional[int] = None
     time_seconds: Optional[int] = None
     rest_seconds: int = 90
+    notes: Optional[str] = None
 
 # --- TABELLA ESERCIZI ---
 class Exercise(SQLModel, table=True):

@@ -14,6 +14,7 @@ interface ExerciseWithWorkload {
   reps: number;
   time_seconds?: number;
   rest_seconds: number;
+  notes?: string;
 }
 
 interface WorkoutDetail {
