@@ -54,7 +54,7 @@ export default function ContactPage() {
           
           {/* WhatsApp */}
           <a 
-            href="https://wa.me/393331234567" // NUMERO DI TELEFONO
+            href="https://wa.me/3476400067" // NUMERO DI TELEFONO
             target="_blank"
             className="flex flex-col items-center gap-2 group"
           >
@@ -66,7 +66,7 @@ export default function ContactPage() {
 
           {/* Instagram */}
           <a 
-            href="https://instagram.com/tuo_profilo" // LINK VERO
+            href="https://www.instagram.com/dariobasilico_pt" // LINK VERO
             target="_blank"
             className="flex flex-col items-center gap-2 group"
           >
@@ -78,7 +78,7 @@ export default function ContactPage() {
 
           {/* Email (Link mailto) */}
           <a 
-            href="mailto:coach@gymbuddy.it" 
+            href="dariobasilicopt@gmail.com" 
             className="flex flex-col items-center gap-2 group"
           >
             <div className="w-12 h-12 bg-white text-gym-red rounded-xl flex items-center justify-center shadow-lg group-active:scale-95 transition-all">

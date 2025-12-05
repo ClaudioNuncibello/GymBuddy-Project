@@ -76,7 +76,7 @@ export default function LoginPage() {
 
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
         <div className="text-center mb-8">
-          <p className="text-gym-red font-black text-xs uppercase tracking-widest mb-2">Gym Buddy</p>
+          <p className="text-gym-red font-black text-xs uppercase tracking-widest mb-2">COACH Progress</p>
           <h1 className="text-3xl font-black italic text-gray-900">BENVENUTO</h1>
           <p className="text-gray-400 text-sm mt-1">Entra per seguire i tuoi allenamenti</p>
         </div>

@@ -16,7 +16,7 @@ export default function Home() {
         {/* Logo GYM BUDDY */}
         <div className="text-center mb-6">
           <h1 className="text-6xl font-black tracking-tighter text-gym-red leading-none uppercase italic">
-            Gym<span className="text-black">Buddy</span>
+            Coach<span className="text-black">Progress</span>
           </h1>
           <div className="h-2 w-24 bg-gym-yellow mx-auto mt-2 rounded-full"></div>
         </div>
