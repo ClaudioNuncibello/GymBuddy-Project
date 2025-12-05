@@ -13,8 +13,7 @@ from .database import create_db_and_tables, get_session
 from .models import Exercise, Workout, WorkoutExerciseLink, User, UserWorkoutLink, WorkoutReadWithExercises
 from .security import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 
-# --- DTO (Data Transfer Objects) ---
-
+# --- DTO ---
 class UserCreate(SQLModel):
     username: str
     password: str
@@ -38,7 +37,7 @@ class WorkoutUpdate(SQLModel):
 class ExerciseWithWorkload(SQLModel):
     id: int
     title: str
-    description: str  # <--- AGGIUNTO: Ora inviamo anche la descrizione!
+    description: str
     video_url: str
     sets: int
     reps: int
@@ -51,7 +50,7 @@ class WorkoutDetailPublic(SQLModel):
     description: Optional[str] = None
     exercises: List[ExerciseWithWorkload] = []
 
-# --- SETUP APP ---
+# --- SETUP ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @asynccontextmanager
@@ -69,13 +68,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- DIPENDENZE DI SICUREZZA ---
+# --- AUTH ---
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: Session = Depends(get_session)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenziali non valide",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    credentials_exception = HTTPException(status_code=401, detail="Credenziali non valide", headers={"WWW-Authenticate": "Bearer"})
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -86,10 +81,9 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], sessio
     return user
 
 async def get_current_manager(current_user: User = Depends(get_current_user)):
-    if not current_user.is_manager: raise HTTPException(status_code=403, detail="Non hai i permessi da Manager")
+    if not current_user.is_manager: raise HTTPException(status_code=403, detail="Non hai i permessi")
     return current_user
 
-# --- GESTIONE VIDEO/IMMAGINI ---
 @app.get("/video/{filename}")
 def get_video(filename: str):
     file_path = f"static/videos/{filename}"
@@ -104,7 +98,6 @@ def get_image(filename: str):
     if not os.path.exists(file_path): raise HTTPException(status_code=404, detail="Immagine non trovata")
     return FileResponse(file_path)
 
-# --- ENDPOINTS AUTH ---
 @app.post("/token")
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: Session = Depends(get_session)):
     user = session.exec(select(User).where(User.username == form_data.username)).first()
@@ -120,7 +113,7 @@ def register_user(user_in: UserCreate, session: Session = Depends(get_session), 
     session.add(db_user); session.commit(); session.refresh(db_user)
     return db_user
 
-# --- GESTIONE UTENTI ---
+# --- UTENTI ---
 @app.get("/users/", response_model=List[User])
 def read_users(session: Session = Depends(get_session), manager: User = Depends(get_current_manager)):
     return session.exec(select(User)).all()
@@ -141,7 +134,7 @@ def delete_user(user_id: int, session: Session = Depends(get_session), manager: 
     for link in session.exec(select(UserWorkoutLink).where(UserWorkoutLink.user_id == user_id)).all(): session.delete(link)
     session.delete(user); session.commit(); return {"message": "Eliminato"}
 
-# --- GESTIONE ESERCIZI ---
+# --- ESERCIZI ---
 @app.get("/exercises/", response_model=List[Exercise])
 def read_exercises(session: Session = Depends(get_session)): return session.exec(select(Exercise)).all()
 
@@ -150,96 +143,86 @@ def create_exercise(e: Exercise, session: Session = Depends(get_session), m: Use
     session.add(e); session.commit(); session.refresh(e); return e
 
 @app.patch("/exercises/{exercise_id}", response_model=Exercise)
-def update_exercise(id: int, u: ExerciseUpdate, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    db_e = session.get(Exercise, id)
+def update_exercise(exercise_id: int, u: ExerciseUpdate, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
+    db_e = session.get(Exercise, exercise_id)
     if not db_e: raise HTTPException(status_code=404)
     for k, v in u.model_dump(exclude_unset=True).items(): setattr(db_e, k, v)
     session.add(db_e); session.commit(); session.refresh(db_e); return db_e
 
 @app.delete("/exercises/{exercise_id}")
-def delete_exercise(id: int, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    e = session.get(Exercise, id)
+def delete_exercise(exercise_id: int, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
+    e = session.get(Exercise, exercise_id)
     if not e: raise HTTPException(status_code=404)
     session.delete(e); session.commit(); return {"message": "Eliminato"}
 
-# --- GESTIONE SCHEDE ---
+# --- SCHEDE ---
 @app.get("/workouts/", response_model=List[Workout])
 def read_workouts(session: Session = Depends(get_session), u: User = Depends(get_current_user)):
     if u.is_manager: return session.exec(select(Workout)).all()
     return session.exec(select(Workout).join(UserWorkoutLink).where(UserWorkoutLink.user_id == u.id)).all()
 
-# --- MODIFICA CRITICA: Mappiamo la descrizione qui ---
 @app.get("/workouts/{workout_id}", response_model=WorkoutDetailPublic)
 def read_workout_details(workout_id: int, session: Session = Depends(get_session)):
-    workout = session.get(Workout, workout_id)
-    if not workout: raise HTTPException(status_code=404, detail="Scheda non trovata")
-    
-    results = session.exec(
-        select(WorkoutExerciseLink, Exercise)
-        .where(WorkoutExerciseLink.workout_id == workout_id)
-        .join(Exercise)
-        .order_by(WorkoutExerciseLink.order)
-    ).all()
-
-    exercises_data = []
-    for link, exercise in results:
-        exercises_data.append(ExerciseWithWorkload(
-            id=exercise.id,
-            title=exercise.title,
-            description=exercise.description, # <--- POPOLIAMO IL CAMPO!
-            video_url=exercise.video_url,
-            sets=link.sets,
-            reps=link.reps if link.reps else 0,
-            time_seconds=link.time_seconds,
-            rest_seconds=link.rest_seconds
-        ))
-
-    return WorkoutDetailPublic(
-        id=workout.id,
-        title=workout.title,
-        description=workout.description,
-        exercises=exercises_data
-    )
+    w = session.get(Workout, workout_id)
+    if not w: raise HTTPException(status_code=404)
+    results = session.exec(select(WorkoutExerciseLink, Exercise).where(WorkoutExerciseLink.workout_id == workout_id).join(Exercise).order_by(WorkoutExerciseLink.order)).all()
+    data = [ExerciseWithWorkload(id=e.id, title=e.title, description=e.description, video_url=e.video_url, sets=l.sets, reps=l.reps if l.reps else 0, time_seconds=l.time_seconds, rest_seconds=l.rest_seconds) for l, e in results]
+    return WorkoutDetailPublic(id=w.id, title=w.title, description=w.description, exercises=data)
 
 @app.post("/workouts/", response_model=Workout)
 def create_workout(w: Workout, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
     session.add(w); session.commit(); session.refresh(w); return w
 
 @app.patch("/workouts/{workout_id}", response_model=Workout)
-def update_workout(id: int, u: WorkoutUpdate, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    w = session.get(Workout, id); 
+def update_workout(workout_id: int, u: WorkoutUpdate, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
+    w = session.get(Workout, workout_id)
     if not w: raise HTTPException(status_code=404)
     for k, v in u.model_dump(exclude_unset=True).items(): setattr(w, k, v)
     session.add(w); session.commit(); session.refresh(w); return w
 
 @app.delete("/workouts/{workout_id}")
-def delete_workout(id: int, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    w = session.get(Workout, id); 
+def delete_workout(workout_id: int, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
+    w = session.get(Workout, workout_id)
     if not w: raise HTTPException(status_code=404)
-    for l in session.exec(select(WorkoutExerciseLink).where(WorkoutExerciseLink.workout_id == id)).all(): session.delete(l)
-    for l in session.exec(select(UserWorkoutLink).where(UserWorkoutLink.workout_id == id)).all(): session.delete(l)
+    for l in session.exec(select(WorkoutExerciseLink).where(WorkoutExerciseLink.workout_id == workout_id)).all(): session.delete(l)
+    for l in session.exec(select(UserWorkoutLink).where(UserWorkoutLink.workout_id == workout_id)).all(): session.delete(l)
     session.delete(w); session.commit(); return {"message": "Eliminato"}
 
+# --- ASSEGNAZIONI (CORRETTO NOMI VARIABILI QUI SOTTO) ---
+
 @app.post("/workouts/{workout_id}/add-exercise/{exercise_id}")
-def add_exercise_to_workout(wid: int, eid: int, sets: int, reps: int, time_seconds: Optional[int]=None, rest_seconds: int=90, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    if not session.get(Workout, wid) or not session.get(Exercise, eid): raise HTTPException(status_code=404)
-    session.add(WorkoutExerciseLink(workout_id=wid, exercise_id=eid, sets=sets, reps=reps, time_seconds=time_seconds, rest_seconds=rest_seconds))
+def add_exercise_to_workout(
+    workout_id: int, exercise_id: int, 
+    sets: int, reps: int, time_seconds: Optional[int]=None, rest_seconds: int=90, 
+    session: Session = Depends(get_session), m: User = Depends(get_current_manager)
+):
+    # FIX: Ora usiamo workout_id e exercise_id come argomenti
+    if not session.get(Workout, workout_id) or not session.get(Exercise, exercise_id): raise HTTPException(status_code=404)
+    session.add(WorkoutExerciseLink(workout_id=workout_id, exercise_id=exercise_id, sets=sets, reps=reps, time_seconds=time_seconds, rest_seconds=rest_seconds))
     session.commit()
     return {"message": "Aggiunto"}
 
 @app.delete("/workouts/{workout_id}/exercises/{exercise_id}")
-def remove_exercise_from_workout(wid: int, eid: int, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
-    l = session.exec(select(WorkoutExerciseLink).where(WorkoutExerciseLink.workout_id == wid, WorkoutExerciseLink.exercise_id == eid)).first()
+def remove_exercise_from_workout(
+    workout_id: int, exercise_id: int, 
+    session: Session = Depends(get_session), m: User = Depends(get_current_manager)
+):
+    # FIX: Ora usiamo workout_id e exercise_id come argomenti
+    l = session.exec(select(WorkoutExerciseLink).where(WorkoutExerciseLink.workout_id == workout_id, WorkoutExerciseLink.exercise_id == exercise_id)).first()
     if not l: raise HTTPException(status_code=404)
     session.delete(l); session.commit(); return {"message": "Rimosso"}
 
 @app.post("/assign-workout/{workout_id}/to-user/{username}")
-def assign_workout_to_user(wid: int, username: str, session: Session = Depends(get_session), m: User = Depends(get_current_manager)):
+def assign_workout_to_user(
+    workout_id: int, username: str, 
+    session: Session = Depends(get_session), m: User = Depends(get_current_manager)
+):
+    # FIX: Ora usiamo workout_id come argomento
     u = session.exec(select(User).where(User.username == username)).first()
-    w = session.get(Workout, wid)
+    w = session.get(Workout, workout_id)
     if not u or not w: raise HTTPException(status_code=404)
-    if session.exec(select(UserWorkoutLink).where(UserWorkoutLink.user_id == u.id, UserWorkoutLink.workout_id == wid)).first(): return {"message": "Già assegnata"}
-    session.add(UserWorkoutLink(user_id=u.id, workout_id=wid)); session.commit()
+    if session.exec(select(UserWorkoutLink).where(UserWorkoutLink.user_id == u.id, UserWorkoutLink.workout_id == workout_id)).first(): return {"message": "Già assegnata"}
+    session.add(UserWorkoutLink(user_id=u.id, workout_id=workout_id)); session.commit()
     return {"message": "Assegnata"}
 
 @app.get("/workouts/{workout_id}/users", response_model=List[User])
