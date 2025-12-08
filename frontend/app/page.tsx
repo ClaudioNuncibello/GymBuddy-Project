@@ -2,20 +2,20 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col bg-white font-sans relative overflow-hidden">
+    // FIX: overflow-x-hidden è corretto.
+    <main className="flex min-h-screen flex-col bg-white font-sans relative overflow-x-hidden">
       
       {/* --- SFONDO DECORATIVO --- */}
-      {/* Cerchio rosso sfocato in alto a destra per dare colore */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gym-red/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-      {/* Cerchio giallo sfocato in basso a sinistra */}
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-gym-yellow/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
       {/* --- CONTENUTO CENTRALE (Logo e Slogan) --- */}
-      <div className="flex-1 flex flex-col justify-center items-center px-8 z-10">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 z-10"> {/* FIX: Padding laterale ridotto a px-4 */}
         
         {/* Logo GYM BUDDY */}
         <div className="text-center mb-6">
-          <h1 className="text-6xl font-black tracking-tighter text-gym-red leading-none uppercase italic">
+          {/* FIX: Riduciamo la dimensione del font su schermi piccoli (text-5xl) */}
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gym-red leading-none uppercase italic"> 
             Coach<span className="text-black">Progress</span>
           </h1>
           <div className="h-2 w-24 bg-gym-yellow mx-auto mt-2 rounded-full"></div>
@@ -41,7 +41,8 @@ export default function Home() {
       </div>
 
       {/* --- PULSANTI (Area interattiva in basso) --- */}
-      <div className="px-6 pb-12 pt-4 z-10 w-full max-w-md mx-auto flex flex-col gap-4">
+      {/* FIX: Riduciamo il padding laterale a px-4 per dare più spazio sui lati */}
+      <div className="px-4 pb-12 pt-4 z-10 w-full max-w-md mx-auto flex flex-col gap-4">
         
         {/* Bottone 1: Login (Pieno - Rosso) */}
         <Link 
