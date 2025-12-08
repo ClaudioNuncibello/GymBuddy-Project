@@ -57,10 +57,6 @@ export default function UserDashboard() {
           <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Bentornato</p>
           <h1 className="text-3xl font-black text-gym-red tracking-tight italic uppercase">{username}</h1>
         </div>
-        {/* Avatar: Giallo con testo Rosso */}
-        <div className="h-12 w-12 bg-gym-yellow rounded-full flex items-center justify-center border-2 border-white shadow-md">
-          <span className="text-xl font-black text-gym-red">{username.charAt(0).toUpperCase()}</span>
-        </div>
       </header>
 
       <main className="px-5 space-y-8 mt-6">

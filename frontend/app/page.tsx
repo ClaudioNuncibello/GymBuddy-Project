@@ -2,7 +2,6 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    // FIX: overflow-x-hidden è corretto.
     <main className="flex min-h-screen flex-col bg-white font-sans relative overflow-x-hidden">
       
       {/* --- SFONDO DECORATIVO --- */}
@@ -10,12 +9,15 @@ export default function Home() {
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-gym-yellow/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
       {/* --- CONTENUTO CENTRALE (Logo e Slogan) --- */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 z-10"> {/* FIX: Padding laterale ridotto a px-4 */}
+      {/* Usiamo px-4 per dare un margine di sicurezza sui lati */}
+      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 z-10"> 
         
-        {/* Logo GYM BUDDY */}
+        {/* Logo COACH PROGRESS */}
         <div className="text-center mb-6">
-          {/* FIX: Riduciamo la dimensione del font su schermi piccoli (text-5xl) */}
-          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gym-red leading-none uppercase italic"> 
+          {/* FIX: text-4xl come dimensione base per i display stretti */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl 
+                       font-black tracking-tighter text-gym-red leading-none 
+                       uppercase italic whitespace-nowrap"> {/* <-- AGGIUNTO whitespace-nowrap */}
             Coach<span className="text-black">Progress</span>
           </h1>
           <div className="h-2 w-24 bg-gym-yellow mx-auto mt-2 rounded-full"></div>
@@ -41,7 +43,6 @@ export default function Home() {
       </div>
 
       {/* --- PULSANTI (Area interattiva in basso) --- */}
-      {/* FIX: Riduciamo il padding laterale a px-4 per dare più spazio sui lati */}
       <div className="px-4 pb-12 pt-4 z-10 w-full max-w-md mx-auto flex flex-col gap-4">
         
         {/* Bottone 1: Login (Pieno - Rosso) */}
