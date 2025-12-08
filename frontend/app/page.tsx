@@ -14,10 +14,11 @@ export default function Home() {
         
         {/* Logo COACH PROGRESS */}
         <div className="text-center mb-6">
-          {/* FIX: text-4xl come dimensione base per i display stretti */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl 
-                       font-black tracking-tighter text-gym-red leading-none 
-                       uppercase italic whitespace-nowrap"> {/* <-- AGGIUNTO whitespace-nowrap */}
+          {/* FIX FINALE: Ridotta la dimensione base a text-3xl per schermi extra-small. */}
+          {/* Usiamo tracking-tight per minimizzare lo spazio tra le lettere */}
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl 
+                       font-black tracking-tightest text-gym-red leading-none 
+                       uppercase italic whitespace-nowrap"> 
             Coach<span className="text-black">Progress</span>
           </h1>
           <div className="h-2 w-24 bg-gym-yellow mx-auto mt-2 rounded-full"></div>
