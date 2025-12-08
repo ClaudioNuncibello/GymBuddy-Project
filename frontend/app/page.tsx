@@ -14,12 +14,14 @@ export default function Home() {
         
         {/* Logo COACH PROGRESS */}
         <div className="text-center mb-6">
-          {/* FIX FINALE: Ridotta la dimensione base a text-3xl per schermi extra-small. */}
-          {/* Usiamo tracking-tight per minimizzare lo spazio tra le lettere */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl 
-                       font-black tracking-tightest text-gym-red leading-none 
-                       uppercase italic whitespace-nowrap"> 
-            Coach<span className="text-black">Progress</span>
+          {/* FIX FINALE: Rimuoviamo il CSS inline e usiamo il text-size responsive standard. */}
+          {/* Rimosso whitespace-nowrap per permettere l'andata a capo. */}
+          <h1 
+            className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-gym-red leading-none uppercase italic"
+            // RIMOSSO: style={{ fontSize: '15vw', lineHeight: '1em' }}
+          > 
+            Coach<br className="sm:hidden" />{/* <-- FORZA ANDATA A CAPO SU MOBILE (< sm) */}
+            <span className="text-black">Progress</span>
           </h1>
           <div className="h-2 w-24 bg-gym-yellow mx-auto mt-2 rounded-full"></div>
         </div>
