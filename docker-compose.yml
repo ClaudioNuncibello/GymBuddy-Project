@@ -12,6 +12,16 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - app-network
     healthcheck:
@@ -42,6 +52,16 @@ services:
       
       # AGGIUNTO IL DOMINIO QUI SOTTO:
       ALLOWED_ORIGINS: http://localhost,http://${VPS_IP},http://${DOMAIN_NAME},https://${DOMAIN_NAME}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - app-network
 
@@ -60,6 +80,16 @@ services:
       INTERNAL_API_URL: http://backend:8000
     depends_on:
       - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - app-network
 
@@ -76,6 +106,16 @@ services:
     depends_on:
       - frontend
       - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     networks:
       - app-network
 

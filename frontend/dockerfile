@@ -7,9 +7,8 @@ RUN apk add --no-cache libc6-compat
 
 COPY package.json package-lock.json* ./
 
-# MODIFICA: Usiamo 'npm install' invece di 'npm ci'
-# Questo risolve l'errore del lockfile non sincronizzato aggiornandolo al volo
-RUN npm install
+# Ripristinato npm ci per build deterministica come da roadmap Fase 3
+RUN npm ci
 
 COPY . .
 

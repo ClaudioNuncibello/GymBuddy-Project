@@ -10,10 +10,12 @@ POSTGRES_HOST = os.getenv("POSTGRES_HOST", "db")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 # Costruiamo l'URL di connessione
-DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+# Diamo precedenza alla variabile combinata se esiste, altrimenti usiamo le separate
+DATABASE_URL = os.getenv("DATABASE_URL") or f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
-# Creiamo il motore di connessione
-engine = create_engine(DATABASE_URL, echo=True) # echo=True stampa le query SQL nel terminale (utile per debug)
+# Creiamo il motore di connessione, echo basato su env per prod/dev
+echo_env = os.getenv("DEBUG", "false").lower() == "true"
+engine = create_engine(DATABASE_URL, echo=echo_env)
 
 # Funzione per ottenere la sessione (da usare nelle API)
 def get_session():

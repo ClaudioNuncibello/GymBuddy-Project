@@ -35,3 +35,18 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Interceptor per le risposte (Logout automatico su 401)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      // Puliamo il token scaduto e reindirizziamo solo se non siamo già sulla pagina di login
+      if (window.location.pathname !== "/login") {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);

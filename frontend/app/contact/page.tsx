@@ -19,20 +19,30 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSending(true);
     
-    // Simulazione invio email
+    // --- FIX FUNZIONAMENTO FORM ---
+    // Costruiamo un link mailto con i dati del form
+    const subject = encodeURIComponent(`Richiesta Info da ${formData.name}`);
+    const body = encodeURIComponent(
+      `Nome: ${formData.name}\nEmail: ${formData.email}\n\nMessaggio:\n${formData.message}`
+    );
+    
+    // Simuliamo un piccolo caricamento per feedback visivo
     setTimeout(() => {
-      alert(`Messaggio inviato da ${formData.name}!\nIl coach ti risponderà a breve su ${formData.email}.`);
+      // Questo apre il client di posta dell'utente
+      window.location.href = `mailto:dariobasilicopt@gmail.com?subject=${subject}&body=${body}`;
+      
       setIsSending(false);
       setFormData({ name: "", email: "", message: "" });
-    }, 1500);
+      alert("Il tuo client di posta si sta aprendo per inviare il messaggio!");
+    }, 1000);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24 selection:bg-gym-yellow selection:text-gym-red relative">
       
-      {/* --- TASTO HOME (Flottante in alto a sinistra) --- */}
+      {/* --- TASTO HOME --- */}
       <Link 
-        href="/dashboard" // O "/" se non loggato
+        href="/" 
         className="absolute top-6 left-6 p-3 bg-white rounded-full shadow-md text-gym-red hover:bg-gray-100 transition-transform active:scale-95 z-20"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -40,7 +50,6 @@ export default function ContactPage() {
 
       {/* --- HEADER SOCIAL --- */}
       <div className="bg-gym-red text-white pt-20 pb-16 px-6 rounded-b-[3rem] shadow-xl text-center relative overflow-hidden">
-        {/* Decorazioni sfondo */}
         <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-32 h-32 bg-gym-yellow/20 rounded-full blur-2xl translate-x-1/3 translate-y-1/3"></div>
 
@@ -54,7 +63,7 @@ export default function ContactPage() {
           
           {/* WhatsApp */}
           <a 
-            href="https://wa.me/3476400067" // NUMERO DI TELEFONO
+            href="https://wa.me/3476400067" 
             target="_blank"
             className="flex flex-col items-center gap-2 group"
           >
@@ -66,7 +75,7 @@ export default function ContactPage() {
 
           {/* Instagram */}
           <a 
-            href="https://www.instagram.com/dariobasilico_pt" // LINK VERO
+            href="https://www.instagram.com/dariobasilico_pt"
             target="_blank"
             className="flex flex-col items-center gap-2 group"
           >
@@ -76,15 +85,15 @@ export default function ContactPage() {
             <span className="text-xs font-bold uppercase tracking-wider opacity-80 group-hover:opacity-100">Instagram</span>
           </a>
 
-          {/* Email (Link mailto) */}
+          {/* Email (FIXED: Aggiunto mailto:) */}
           <a 
-            href="dariobasilicopt@gmail.com" 
+            href="mailto:dariobasilicopt@gmail.com" // <--- FIX QUI
             className="flex flex-col items-center gap-2 group"
           >
             <div className="w-12 h-12 bg-white text-gym-red rounded-xl flex items-center justify-center shadow-lg group-active:scale-95 transition-all">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider opacity-80 group-hover:opacity-100">  La mia Email  </span>
+            <span className="text-xs font-bold uppercase tracking-wider opacity-80 group-hover:opacity-100">Email</span>
           </a>
 
         </div>
@@ -96,8 +105,7 @@ export default function ContactPage() {
           <h2 className="text-xl font-black text-gray-900 mb-6 uppercase italic">Scrivimi un messaggio</h2>
           
           <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* Nome */}
+            {/* ... INPUTS RIMASTI UGUALI ... */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Il tuo Nome</label>
               <input 
@@ -111,7 +119,6 @@ export default function ContactPage() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">La tua Email</label>
               <input 
@@ -125,7 +132,6 @@ export default function ContactPage() {
               />
             </div>
 
-            {/* Messaggio */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Messaggio</label>
               <textarea 
@@ -139,7 +145,6 @@ export default function ContactPage() {
               ></textarea>
             </div>
 
-            {/* Tasto Invio */}
             <button 
               type="submit" 
               disabled={isSending}
@@ -148,7 +153,7 @@ export default function ContactPage() {
               }`}
             >
               {isSending ? (
-                "Invio in corso..."
+                "Preparazione Email..."
               ) : (
                 <>
                   Invia Messaggio
@@ -161,10 +166,9 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* Footer info */}
       <div className="text-center mt-12 text-gray-400 text-xs font-medium px-8">
         <p>Rispondo solitamente entro 24 ore.</p>
-        <p className="mt-1">Gym Buddy v1.0</p>
+        <p className="mt-1">Coach Progress v1.0</p>
       </div>
 
     </div>

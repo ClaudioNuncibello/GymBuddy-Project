@@ -110,7 +110,7 @@ export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  const handleFinishSet = () => {
+  const handleFinishSet = async () => {
     if (currentSet < (currentExercise?.sets || 1)) {
       startRest();
     } else {
@@ -118,6 +118,9 @@ export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: st
         startRest(true);
       } else {
         endSession(); // Finito!
+        try {
+          await api.post("/sessions/", { workout_id: parseInt(id as string), duration_seconds: session.totalTime });
+        } catch(err) { console.error("Errore salvataggio sessione"); }
       }
     }
   };
@@ -148,7 +151,7 @@ export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: st
     updateState({ status: "WORK", currentSet: nextSet, currentExIndex: nextIndex });
 
     // Setup timer prossimo esercizio se serve
-    const nextEx = workout?.exercises[currentSet < (currentExercise?.sets || 1) ? currentExIndex : currentExIndex + 1];
+    const nextEx = workout?.exercises[nextIndex];
     if (nextEx?.time_seconds) {
       setLocalTimeLeft(nextEx.time_seconds);
     }

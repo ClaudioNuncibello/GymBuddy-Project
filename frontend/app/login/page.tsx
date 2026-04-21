@@ -38,8 +38,19 @@ export default function LoginPage() {
 
       localStorage.setItem("token", token);
       
-      // Se vuoi debuggare, puoi stampare il token: console.log("Token:", token);
-      router.push("/dashboardAdmin"); 
+      // Decodifica manuale payload JWT (parte base64 in mezzo)
+      try {
+        const payloadBase64 = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payloadBase64));
+        if (decodedPayload.is_manager) {
+          router.push("/dashboardAdmin"); 
+        } else {
+          router.push("/dashboard");
+        }
+      } catch(e) {
+        // Fallback sicuro se paring fallisce
+        router.push("/dashboard");
+      }
 
     } catch (err: any) {
       console.error("Login Error:", err);
