@@ -4,8 +4,8 @@ from sqlmodel import Field, SQLModel, Relationship
 # --- TABELLA DI COLLEGAMENTO UTENTE-SCHEDA (Nuova!) ---
 # Questa tabella dice: "L'utente X deve fare la scheda Y"
 class UserWorkoutLink(SQLModel, table=True):
-    user_id: Optional[int] = Field(default=None, foreign_key="user.id", ondelete="CASCADE", primary_key=True)
-    workout_id: Optional[int] = Field(default=None, foreign_key="workout.id", ondelete="CASCADE", primary_key=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", primary_key=True)
+    workout_id: Optional[int] = Field(default=None, foreign_key="workout.id", primary_key=True)
     # Possiamo aggiungere campi extra qui in futuro (es. data assegnazione, stato completamento)
     is_active: bool = True 
 
@@ -23,8 +23,8 @@ class User(SQLModel, table=True):
 
 # --- TABELLA LINK ESERCIZIO-SCHEDA ---
 class WorkoutExerciseLink(SQLModel, table=True):
-    workout_id: Optional[int] = Field(default=None, foreign_key="workout.id", ondelete="CASCADE", primary_key=True)
-    exercise_id: Optional[int] = Field(default=None, foreign_key="exercise.id", ondelete="CASCADE", primary_key=True)
+    workout_id: Optional[int] = Field(default=None, foreign_key="workout.id", primary_key=True)
+    exercise_id: Optional[int] = Field(default=None, foreign_key="exercise.id", primary_key=True)
     order: int = 0
     sets: int = 3
     reps: Optional[int] = None
@@ -62,8 +62,8 @@ from datetime import datetime
 
 class WorkoutSession(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", ondelete="CASCADE")
-    workout_id: int = Field(foreign_key="workout.id", ondelete="CASCADE")
+    user_id: int = Field(foreign_key="user.id")
+    workout_id: int = Field(foreign_key="workout.id")
     duration_seconds: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     notes: Optional[str] = None

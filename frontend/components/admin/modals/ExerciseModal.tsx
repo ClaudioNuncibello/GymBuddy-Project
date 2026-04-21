@@ -1,6 +1,6 @@
 import { useState, ChangeEvent } from "react";
 import { api } from "@/lib/api";
-import { toast } from "../ui/Toast";
+import { toast } from "../../ui/Toast";
 import { Exercise } from "@/types";
 
 interface Props {

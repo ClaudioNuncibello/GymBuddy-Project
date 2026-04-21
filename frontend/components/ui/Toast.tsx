@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 
 // Questa è una semplice implementazione di Toast. 
